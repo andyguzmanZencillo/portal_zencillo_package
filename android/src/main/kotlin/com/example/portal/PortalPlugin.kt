@@ -23,7 +23,7 @@ class PortalPlugin : FlutterPlugin,
     private var modelPay = ModelPay()
 
     companion object {
-        private const val REQ_LOGIN = 1001
+        private const val REQ_LOGIN = 10001
         private const val REQ_PAY = 2001
         private const val REQ_CLOSE = 3001
     }
