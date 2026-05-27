@@ -19,6 +19,9 @@ class ResponsePay(var modelPay: ModelPay) {
     var lastFourDigitsCard: String = ""
     var merchantPosId: String = ""
 
+    // JSON original recibido desde Portal DOM
+    var rawResponse: String = ""
+
     fun toJSON(): String {
         val json = JSONObject()
         json.put("message", message)
@@ -40,6 +43,9 @@ class ResponsePay(var modelPay: ModelPay) {
         json.put("amountSend", modelPay.rAmount)
         json.put("taxSend", modelPay.rTax)
         json.put("isla", modelPay.nIsla)
+
+        // JSON original en bruto
+        json.put("rawResponse", rawResponse)
 
         return json.toString()
     }
@@ -64,7 +70,10 @@ class ResponsePay(var modelPay: ModelPay) {
             "idInvoice" to modelPay.nIdInvoice,
             "amountSend" to modelPay.rAmount,
             "taxSend" to modelPay.rTax,
-            "isla" to modelPay.nIsla
+            "isla" to modelPay.nIsla,
+
+            // JSON original en bruto
+            "rawResponse" to rawResponse
         )
     }
 }

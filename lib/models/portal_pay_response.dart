@@ -16,7 +16,12 @@ class PortalPayResponse {
   final String quotas;
   final String lastFourDigitsCard;
   final String merchantPosId;
+
+  /// Data ya procesada que viene dentro de "data"
   final String data;
+
+  /// JSON original en bruto que llega desde Portal DOM
+  final String raw;
 
   PortalPayResponse({
     required this.code,
@@ -35,10 +40,12 @@ class PortalPayResponse {
     required this.lastFourDigitsCard,
     required this.merchantPosId,
     required this.data,
+    required this.raw,
   });
 
   factory PortalPayResponse.fromJson(Map<String, dynamic> json) {
     final data = json.getPro('data', <String, dynamic>{});
+
     return PortalPayResponse(
       code: json.getPro('code', 0),
       message: json.getPro('message', ''),
@@ -55,7 +62,11 @@ class PortalPayResponse {
       quotas: data.getPro('quotas', ''),
       lastFourDigitsCard: data.getPro('lastFourDigitsCard', ''),
       merchantPosId: data.getPro('merchantPosId', ''),
+
       data: data.toString(),
+
+      // Aquí recibes el JSON original de Portal DOM
+      raw: json.getPro('raw', ''),
     );
   }
 }

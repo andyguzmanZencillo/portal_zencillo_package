@@ -238,6 +238,7 @@ class PortalPlugin : FlutterPlugin,
                 return JSONObject().apply {
                     put("code", 1)
                     put("message", "Respuesta vacía del proceso de pago")
+                    put("raw", JSONObject.NULL)
                 }.toString()
             }
 
@@ -252,6 +253,9 @@ class PortalPlugin : FlutterPlugin,
                 return JSONObject().apply {
                     put("code", 1)
                     put("message", response.message)
+
+                    // JSON original recibido desde Portal DOM
+                    put("raw", raw)
                 }.toString()
             }
 
@@ -273,12 +277,18 @@ class PortalPlugin : FlutterPlugin,
                 put("code", 0)
                 put("message", "Pago exitoso")
                 put("data", JSONObject(response.toMap()))
+
+                // JSON original recibido desde Portal DOM, antes de mapearlo
+                put("raw", raw)
             }.toString()
 
         } catch (e: Exception) {
             JSONObject().apply {
                 put("code", 1)
                 put("message", "Error al parsear respuesta: ${e.message}")
+
+                // En caso de error, igual devolvemos lo que llegó
+                put("raw", raw ?: JSONObject.NULL)
             }.toString()
         }
     }
