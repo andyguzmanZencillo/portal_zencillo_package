@@ -233,63 +233,123 @@ class PortalPlugin : FlutterPlugin,
     }
 
     private fun parsePay(raw: String?): String {
-        return try {
-            if (raw == null) {
-                return JSONObject().apply {
-                    put("code", 1)
-                    put("message", "Respuesta vacía del proceso de pago")
-                    put("raw", JSONObject.NULL)
-                }.toString()
-            }
-
-            val obj = JSONObject(raw)
-            val response = ResponsePay(modelPay)
-
-            val error = obj.optBoolean("Error", true)
-            response.responseCode = obj.optString("Code", "")
-            response.message = obj.optString("Message", "")
-
-            if (error) {
-                return JSONObject().apply {
-                    put("code", 1)
-                    put("message", response.message)
-
-                    // JSON original recibido desde Portal DOM
-                    put("raw", raw)
-                }.toString()
-            }
-
-            obj.optJSONObject("Data")?.let { data ->
-                response.autorizationCode = data.optString("transactionId", "")
-                response.value = data.optString("total", "")
-                response.tax = modelPay.rTax.toString()
-                response.rrn = data.optString("referenceNumber")
-                response.receipt = data.optString("ticketNumber")
-                response.terminalId = data.optString("terminalId")
-                response.timeDate = data.optString("localTimestamp")
-                response.lastFourDigitsCard = data.optString("maskedAccountIdentifier")
-                response.franchise = data.optString("scheme")
-                response.accountType = data.optString("entryMode")
-                response.merchantPosId = data.optString("merchantId")
-            }
-
-            JSONObject().apply {
-                put("code", 0)
-                put("message", "Pago exitoso")
-                put("data", JSONObject(response.toMap()))
-
-                // JSON original recibido desde Portal DOM, antes de mapearlo
-                put("raw", raw)
-            }.toString()
-
-        } catch (e: Exception) {
-            JSONObject().apply {
+    return try {
+        if (raw == null) {
+            return JSONObject().apply {
                 put("code", 1)
-                put("message", "Error al parsear respuesta: ${e.message}")
-
-                // En caso de error, igual devolvemos lo que llegó
-                put("raw", raw ?: JSONObject.NULL)
+                put("message", "Respuesta vacía del proceso de pago")
+                put("raw", JSONObject.NULL)
             }.toString()
         }
+
+        val obj = JSONObject(raw)
+        val response = ResponsePay(modelPay)
+
+        // Guardamos el JSON original completo tal como llega desde Portal DOM
+        response.rawResponse = raw
+
+        val error = obj.optBoolean("Error", true)
+        val portalCode = obj.optString("Code", "")
+        val portalMessage = obj.optString("Message", "")
+
+        response.responseCode = portalCode
+        response.message = portalMessage
+
+        if (error) {
+            return JSONObject().apply {
+                put("code", 1)
+                put("message", portalMessage.ifEmpty { "Error en proceso de pago" })
+                put("portalCode", portalCode)
+
+                // JSON original tal como llegó
+                put("raw", raw)
+            }.toString()
+        }
+
+        val data = obj.optJSONObject("Data")
+
+        if (data == null) {
+            return JSONObject().apply {
+                put("code", 1)
+                put("message", "La respuesta no contiene Data")
+                put("portalCode", portalCode)
+
+                // JSON original tal como llegó
+                put("raw", raw)
+            }.toString()
+        }
+
+        response.apply {
+            // ------------------------------------------------------------------
+            // Campos originales de Data
+            // ------------------------------------------------------------------
+
+            messageName = data.optString("messageName", "")
+            messageType = data.optString("messageType", "")
+            subMessageType = data.optString("subMessageType", "")
+            globalStatus = data.optInt("globalStatus", 0)
+            messageId = data.optString("messageId", "")
+            grandTotal = data.optDouble("grandTotal", 0.0)
+            tipsAmount = data.optDouble("tipsAmount", 0.0)
+            scheme = data.optString("scheme", "")
+            localTimestamp = data.optString("localTimestamp", "")
+            entryMode = data.optString("entryMode", "")
+            referenceNumber = data.optString("referenceNumber", "")
+            authResponseCode = data.optString("authResponseCode", "")
+            cardToken = data.optString("cardToken", "")
+            maskedAccountIdentifier = data.optString("maskedAccountIdentifier", "")
+            expirationDate = data.optString("expirationDate", "")
+            traceAuditNo = data.optString("traceAuditNo", "")
+            transactionId = data.optString("transactionId", "")
+            ticketNumber = data.optString("ticketNumber", "")
+            terminalId = data.optString("terminalId", "")
+            merchantId = data.optString("merchantId", "")
+            currencyCode = data.optString("currencyCode", "")
+            currencySymbol = data.optString("currencySymbol", "")
+            approvalCode = data.optString("approvalCode", "")
+            total = data.optDouble("total", 0.0)
+            type = data.optInt("type", 0)
+            lot = data.optInt("lot", 0)
+            isDCC = data.optString("isDCC", "")
+            description = data.optString("Description", "")
+
+            // ------------------------------------------------------------------
+            // Campos compatibles con tu respuesta anterior
+            // ------------------------------------------------------------------
+
+            autorizationCode = approvalCode.ifEmpty { transactionId }
+            value = total.toString()
+            tax = modelPay.rTax.toString()
+            rrn = referenceNumber
+            receipt = ticketNumber
+            timeDate = localTimestamp
+            responseCode = authResponseCode.ifEmpty { portalCode }
+            franchise = scheme
+            accountType = entryMode
+            lastFourDigitsCard = maskedAccountIdentifier
+            merchantPosId = merchantId
+
+            // JSON original dentro de data
+            rawResponse = raw
+        }
+
+        JSONObject().apply {
+            put("code", 0)
+            put("message", "Pago exitoso")
+            put("data", JSONObject(response.toMap()))
+
+            // JSON original fuera de data, tal como llegó
+            put("raw", raw)
+        }.toString()
+
+    } catch (e: Exception) {
+        JSONObject().apply {
+            put("code", 1)
+            put("message", "Error al parsear respuesta: ${e.message}")
+
+            // Si falla el parseo, igual devolvemos lo que llegó
+            put("raw", raw ?: JSONObject.NULL)
+        }.toString()
     }
+}
 }
