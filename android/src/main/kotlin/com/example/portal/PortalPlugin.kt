@@ -11,6 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 import com.example.portal.models.ModelPay
 import com.example.portal.models.ResponsePay
 import org.json.JSONObject
+import org.json.JSONArray
 
 /** PortalPlugin */
 class PortalPlugin : FlutterPlugin,
@@ -192,17 +193,27 @@ class PortalPlugin : FlutterPlugin,
 
                 REQ_CLOSE -> {
                     if (resultCode == Activity.RESULT_OK) {
+                        val raw = data?.getStringExtra("process_result")
+
                         pendingResult?.success(
                             JSONObject().apply {
                                 put("code", 0)
                                 put("message", "CIERRE EJECUTADO")
+
+                                // JSON en bruto tal como llega desde Portal DOM
+                                put("jsonData", raw ?: JSONObject.NULL)
                             }.toString()
                         )
                     } else {
+                        val raw = data?.getStringExtra("process_result")
+
                         pendingResult?.success(
                             JSONObject().apply {
                                 put("code", 1)
                                 put("message", "Cierre cancelado por el usuario")
+
+                                // Si Portal DOM manda algo aun cancelando, también lo guardamos
+                                put("jsonData", raw ?: JSONObject.NULL)
                             }.toString()
                         )
                     }
