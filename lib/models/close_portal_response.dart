@@ -18,4 +18,9 @@ class ClosePortalResponse {
       jsonData: json.getPro('jsonData', ''),
     );
   }
+  //to string
+  @override
+  String toString() {
+    return 'ClosePortalResponse{code: $code, message: $message, jsonData: $jsonData}';
+  }
 }

@@ -192,28 +192,64 @@ class PortalPlugin : FlutterPlugin,
                 }
 
                 REQ_CLOSE -> {
-                    if (resultCode == Activity.RESULT_OK) {
-                        val raw = data?.getStringExtra("process_result")
+                    val rawProcessResult = data?.getStringExtra("process_result")
+                    val extrasJson = JSONObject()
 
+                    if (data?.extras != null) {
+                        for (key in data.extras!!.keySet()) {
+                            val value = data.extras!!.get(key)
+
+                            extrasJson.put(
+                                key,
+                                value?.toString() ?: JSONObject.NULL
+                            )
+
+                            android.util.Log.d(
+                                "PortalPlugin",
+                                "REQ_CLOSE extra key=$key value=$value"
+                            )
+                        }
+                    } else {
+                        android.util.Log.d("PortalPlugin", "REQ_CLOSE sin extras")
+                    }
+
+                    val debugJsonData = JSONObject().apply {
+                        put("resultCode", resultCode)
+                        put("isResultOk", resultCode == Activity.RESULT_OK)
+
+                        // Lo que estabas intentando leer
+                        put("process_result", rawProcessResult ?: JSONObject.NULL)
+
+                        // Intent completo como texto
+                        put("intentData", data?.toString() ?: JSONObject.NULL)
+
+                        // Todos los extras que vengan en el Intent
+                        put("extras", extrasJson)
+
+                        // Ayuda para saber si realmente vino algo
+                        put("hasIntent", data != null)
+                        put("hasExtras", data?.extras != null)
+                        put("extrasCount", data?.extras?.keySet()?.size ?: 0)
+                    }
+
+                    if (resultCode == Activity.RESULT_OK) {
                         pendingResult?.success(
                             JSONObject().apply {
                                 put("code", 0)
                                 put("message", "CIERRE EJECUTADO")
 
-                                // JSON en bruto tal como llega desde Portal DOM
-                                put("jsonData", raw ?: JSONObject.NULL)
+                                // Todo va dentro de jsonData como String
+                                put("jsonData", debugJsonData.toString())
                             }.toString()
                         )
                     } else {
-                        val raw = data?.getStringExtra("process_result")
-
                         pendingResult?.success(
                             JSONObject().apply {
                                 put("code", 1)
                                 put("message", "Cierre cancelado por el usuario")
 
-                                // Si Portal DOM manda algo aun cancelando, también lo guardamos
-                                put("jsonData", raw ?: JSONObject.NULL)
+                                // Todo va dentro de jsonData como String
+                                put("jsonData", debugJsonData.toString())
                             }.toString()
                         )
                     }
