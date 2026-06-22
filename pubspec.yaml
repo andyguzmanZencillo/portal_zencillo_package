@@ -2,6 +2,7 @@ name: portal
 description: Plugin Flutter para portal.
 version: 1.1.1
 homepage:
+publish_to: none
 
 environment:
   sdk: ">=3.4.4 <4.0.0"
@@ -12,6 +13,10 @@ dependencies:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
   oxidized: ^6.2.0
+  zencillo_helpers:
+    git:
+      url: https://github.com/andyguzmanZencillo/zencillo_helpers.git
+      ref: main
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,4 @@
-import 'package:portal/extension/get_pro.dart';
+import 'package:zencillo_helpers/zencillo_helpers.dart';
 
 class ClosePortalResponse {
   final int code;
