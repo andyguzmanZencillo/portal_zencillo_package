@@ -177,7 +177,7 @@
     },
     {
       "name": "zencillo_helpers",
-      "rootUri": "file:///C:/Users/ANDY/AppData/Local/Pub/Cache/git/zencillo_helpers-06330acbcfa9fe59fe1137af118b1f5ca455f40a/",
+      "rootUri": "file:///C:/Users/ANDY/AppData/Local/Pub/Cache/git/zencillo_helpers-27d4ad39bb107116dd28a62628303147b287631d/",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -188,7 +188,7 @@
       "languageVersion": "3.4"
     }
   ],
-  "generated": "2026-06-22T16:09:32.857474Z",
+  "generated": "2026-06-23T03:01:38.145097Z",
   "generator": "pub",
   "generatorVersion": "3.4.4",
   "flutterRoot": "file:///C:/dev/flutter_windows_3.22.3-stable/flutter",

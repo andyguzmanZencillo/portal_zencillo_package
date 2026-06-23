@@ -229,7 +229,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "06330acbcfa9fe59fe1137af118b1f5ca455f40a"
+      resolved-ref: "27d4ad39bb107116dd28a62628303147b287631d"
       url: "https://github.com/andyguzmanZencillo/zencillo_helpers.git"
     source: git
     version: "0.0.1"
