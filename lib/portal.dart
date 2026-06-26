@@ -69,6 +69,38 @@ class Portal {
     return Ok(formaPagoDetalle);
   }
 
+  static Future<Result<FormaPagoDetalleModel, String>> payComplete({
+    required String token,
+    required double total,
+    required double taxTotal,
+    required double subTotal,
+    required double tip,
+    required double iac,
+  }) async {
+    final result = await PortalPlatform.instance.pay(
+      token: token,
+      amount: total,
+      tax: taxTotal,
+      tip: tip,
+      iac: iac,
+    );
+
+    if (result.isErr()) {
+      return Err(result.unwrapErr());
+    }
+    final data = result.unwrap();
+    final formaPagoDetalle = data.toFormaPagoDetalle(
+      idTurno: 0,
+      numeroTurno: 0,
+      idDocument: 0,
+      total: total,
+      taxTotal: taxTotal,
+      subTotal: subTotal,
+      idFormaPago: 0,
+    );
+    return Ok(formaPagoDetalle);
+  }
+
   /// Cierra la sesión del portal
   static Future<Result<ClosePortalResponse, String>> close(String token) {
     return PortalPlatform.instance.close(token);
