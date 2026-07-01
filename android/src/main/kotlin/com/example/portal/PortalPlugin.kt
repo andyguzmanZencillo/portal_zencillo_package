@@ -63,7 +63,7 @@ class PortalPlugin : FlutterPlugin,
                 modelPay.rTax = call.argument<Double>("tax")!!
                 modelPay.rTIP = call.argument<Double>("tip")!!
                 modelPay.rIAC = call.argument<Double>("iac")!!
-                sendPayment(true)
+                sendPayment(false)
             }
 
             "close" -> {
@@ -75,7 +75,7 @@ class PortalPlugin : FlutterPlugin,
             else -> result.notImplemented()
         }
     }
-
+    
     // --------------------------------------------------------------------------
     // 3. Get Activity reference
     // --------------------------------------------------------------------------
@@ -358,7 +358,7 @@ class PortalPlugin : FlutterPlugin,
                 type = data.optInt("type", 0)
                 lot = data.optInt("lot", 0)
                 isDCC = data.optString("isDCC", "")
-                description = data.optString("Description", "")
+                description = data.optString("Description", data.optString("description", ""))
 
                 // ------------------------------------------------------------------
                 // Campos compatibles con tu respuesta anterior

@@ -21,58 +21,60 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
         ? authResponseCode.trim()
         : responseCode.trim();
 
-    final secuencialPortal = transactionId.trim().isNotEmpty
-        ? transactionId.trim()
-        : autorizationCode.trim();
+    final numeroAutorizacionPortal = approvalCode.trim().isNotEmpty
+        ? approvalCode.trim()
+        : transactionId.trim();
 
-    final numeroAutorizacionPortal =
-        approvalCode.trim().isNotEmpty ? approvalCode.trim() : secuencialPortal;
-
+    // Terminal.
     final terminalPortal = terminalId.trim();
 
+    // Comercio.
     final comercioPortal =
         merchantId.trim().isNotEmpty ? merchantId.trim() : merchantPosId.trim();
-
-    final lotePortal = lot > 0 ? lot : numeroTurno;
 
     final referenciaPortal =
         referenceNumber.trim().isNotEmpty ? referenceNumber.trim() : rrn.trim();
 
     final reciboPortal =
         ticketNumber.trim().isNotEmpty ? ticketNumber.trim() : receipt.trim();
-    final accountNo = maskedAccountIdentifier.isNotEmpty
-        ? maskedAccountIdentifier
-        : lastFourDigitsCard;
 
     final tarjetaPortal = maskedAccountIdentifier.trim().isNotEmpty
         ? maskedAccountIdentifier.trim()
-        : accountNo.trim().isNotEmpty
-            ? accountNo.trim()
-            : lastFourDigitsCard.trim();
+        : lastFourDigitsCard.trim();
 
-    final hostPortal = franchise.trim().isNotEmpty
-        ? franchise.trim()
-        : franchise.trim().isNotEmpty
-            ? franchise.trim()
-            : scheme.trim();
+    final hostPortal =
+        scheme.trim().isNotEmpty ? scheme.trim() : franchise.trim();
 
+    // Modo de lectura.
     final modoLecturaPortal =
         entryMode.trim().isNotEmpty ? entryMode.trim() : accountType.trim();
 
-    final nombreTarjetaHabientePortal = hostPortal.trim();
+    final nombreTarjetaHabientePortal = hostPortal;
 
-    final montoTotalPortal = total > 0 ? total : total;
+    final montoTotalPortal = this.total > 0 ? this.total : total;
+
+    final secuencialPortal = traceAuditNo.trim().isNotEmpty
+        ? traceAuditNo.toIntSafe()
+        : reciboPortal.toIntSafe();
+
+    final numeroLotePortal = lot;
+
+    final tarjetaEncriptadaPortal =
+        cardToken.trim().isNotEmpty ? cardToken.trim() : tarjetaPortal;
 
     final result = FormaPagoDetalleModel(
       idVenta: idDocument,
       idTurno: idTurno,
 
       identificacionRed: 'PORTAL_POS',
+
       codigoRespuestaActor: codigoRespuestaPortal,
+
       mensajeRespuesta: jsonOriginalPortal,
 
-      secuencialTransaccion: secuencialPortal.toIntSafe(),
-      numeroLote: lotePortal,
+      secuencialTransaccion: secuencialPortal,
+
+      numeroLote: numeroLotePortal,
 
       horaTransaccion: DateTime.now().getHourWindDev(),
       fechaTransaccion: DateTime.now(),
@@ -86,6 +88,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       mensajeImpresion: '',
 
       codigoBanco: codigoRespuestaPortal.toIntSafe(),
+
       nombreBanco: hostPortal,
       nombreGrupoTarjeta: hostPortal,
 
@@ -102,8 +105,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
 
       numeroTarjetaTruncado: tarjetaPortal,
       fechaVencimientoTarjeta: expirationDate.trim().toIntSafe(),
-      numeroTarjetaEncriptada:
-          cardToken.trim().isNotEmpty ? cardToken.trim() : tarjetaPortal,
+      numeroTarjetaEncriptada: tarjetaEncriptadaPortal,
 
       impuesto: taxTotal,
       baseConImpuesto: subTotal + taxTotal,
@@ -116,6 +118,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       host: hostPortal,
       hostName: hostPortal,
       tipoTarjeta: hostPortal,
+
       tipoVenta: type > 0 ? type.toString() : '',
 
       numeroTarjeta: tarjetaPortal,
@@ -136,7 +139,10 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       idComercio: comercioPortal,
 
       diferidoyQuickPayment: '',
+
+      // También guardamos el JSON completo aquí por respaldo.
       reservado: jsonOriginalPortal,
+
       archivoFirma: '',
       tvr: '',
       tsi: '',
