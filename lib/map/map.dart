@@ -159,7 +159,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // <NumeroReferencia>000001</NumeroReferencia>
       // <CodigoReferencia>000001</CodigoReferencia>
       // Para tu JSON debe ser ticketNumber: 000003.
-      numeroReferencia: reciboPortal,
+      numeroReferencia: referenceNumber,
       codigoReferencia: reciboPortal,
 
       // XML que funciona:
