@@ -17,23 +17,13 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
             ? rawResponse.trim()
             : data.trim();
 
-    final codigoRespuestaPortal = authResponseCode.trim().isNotEmpty
-        ? authResponseCode.trim()
-        : responseCode.trim();
+    final numeroAutorizacionPortal = transactionId.trim().isNotEmpty
+        ? transactionId.trim()
+        : messageId.trim().isNotEmpty
+            ? messageId.trim()
+            : approvalCode.trim();
 
-    final numeroAutorizacionPortal = approvalCode.trim().isNotEmpty
-        ? approvalCode.trim()
-        : transactionId.trim();
-
-    // Terminal.
     final terminalPortal = terminalId.trim();
-
-    // Comercio.
-    final comercioPortal =
-        merchantId.trim().isNotEmpty ? merchantId.trim() : merchantPosId.trim();
-
-    final referenciaPortal =
-        referenceNumber.trim().isNotEmpty ? referenceNumber.trim() : rrn.trim();
 
     final reciboPortal =
         ticketNumber.trim().isNotEmpty ? ticketNumber.trim() : receipt.trim();
@@ -45,56 +35,72 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
     final hostPortal =
         scheme.trim().isNotEmpty ? scheme.trim() : franchise.trim();
 
-    // Modo de lectura.
-    final modoLecturaPortal =
-        entryMode.trim().isNotEmpty ? entryMode.trim() : accountType.trim();
+    final comercioPortal =
+        merchantId.trim().isNotEmpty ? merchantId.trim() : merchantPosId.trim();
 
-    final nombreTarjetaHabientePortal = hostPortal;
+    final fechaPortal =
+        _dateFromPortalTimestamp(localTimestamp) ?? DateTime.now();
 
-    final montoTotalPortal = this.total > 0 ? this.total : total;
+    final montoTotalPortal = this.total > 0
+        ? this.total
+        : grandTotal > 0
+            ? grandTotal
+            : total;
 
-    final secuencialPortal = traceAuditNo.trim().isNotEmpty
-        ? traceAuditNo.toIntSafe()
-        : reciboPortal.toIntSafe();
-
-    final numeroLotePortal = lot;
-
-    final tarjetaEncriptadaPortal =
-        cardToken.trim().isNotEmpty ? cardToken.trim() : tarjetaPortal;
-
-    final result = FormaPagoDetalleModel(
+    return FormaPagoDetalleModel(
       idVenta: idDocument,
       idTurno: idTurno,
 
       identificacionRed: 'PORTAL_POS',
 
-      codigoRespuestaActor: codigoRespuestaPortal,
+      // XML que funciona:
+      // <CodigoRespuestaActor/>
+      codigoRespuestaActor: '',
 
+      // XML que funciona:
+      // <MensajeRespuesta>{JSON}</MensajeRespuesta>
       mensajeRespuesta: jsonOriginalPortal,
 
-      secuencialTransaccion: secuencialPortal,
+      // XML que funciona:
+      // <SecuencialTransaccion>949601</SecuencialTransaccion>
+      // Usamos transactionId/messageId, no traceAuditNo.
+      secuencialTransaccion: numeroAutorizacionPortal.toIntSafe(),
 
-      numeroLote: numeroLotePortal,
+      // XML que funciona:
+      // <NumeroLote>633</NumeroLote>
+      // En el original funcional venía igual al documento/venta local.
+      numeroLote: idDocument,
 
-      horaTransaccion: DateTime.now().getHourWindDev(),
-      fechaTransaccion: DateTime.now(),
+      horaTransaccion: fechaPortal.getHourWindDev(),
 
+      // Importante: al generar XML debe salir YYYYMMDD.
+      fechaTransaccion: fechaPortal,
+
+      // XML que funciona:
+      // <NumeroAutorizacion>949601</NumeroAutorizacion>
       numeroAutorizacion: numeroAutorizacionPortal.limit(10),
 
-      tid: terminalPortal,
+      // XML que funciona:
+      // <TID/>
+      tid: '',
+
+      // XML que funciona:
+      // <MID>000000167391001</MID>
       mid: comercioPortal,
 
       valorInteres: 0,
       mensajeImpresion: '',
 
-      codigoBanco: codigoRespuestaPortal.toIntSafe(),
+      codigoBanco: 0,
 
       nombreBanco: hostPortal,
       nombreGrupoTarjeta: hostPortal,
 
-      modoLectura: modoLecturaPortal,
+      // XML que funciona:
+      // <ModoLectura/>
+      modoLectura: '',
 
-      nombreTarjetaHabiente: nombreTarjetaHabientePortal,
+      nombreTarjetaHabiente: hostPortal,
 
       montoFijo: '',
       identificadorAplicacion: '',
@@ -103,12 +109,25 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       pin: '',
       arqc: '',
 
+      // XML que funciona:
+      // <NumeroTarjeta>9148</NumeroTarjeta>
       numeroTarjetaTruncado: tarjetaPortal,
-      fechaVencimientoTarjeta: expirationDate.trim().toIntSafe(),
-      numeroTarjetaEncriptada: tarjetaEncriptadaPortal,
+
+      // XML que funciona:
+      // <FechaVencimientoTarjeta>0</FechaVencimientoTarjeta>
+      fechaVencimientoTarjeta: 0,
+
+      // XML que funciona:
+      // <NumeroTarjetaEncriptada>9148</NumeroTarjetaEncriptada>
+      // NO usar cardToken porque es largo y puede truncar.
+      numeroTarjetaEncriptada: tarjetaPortal,
 
       impuesto: taxTotal,
-      baseConImpuesto: subTotal + taxTotal,
+
+      // XML que funciona:
+      // <BaseConImpuesto>0</BaseConImpuesto>
+      baseConImpuesto: 0,
+
       baseSinImpuesto: subTotal,
       montoImpuesto: taxTotal,
       montoTotal: montoTotalPortal,
@@ -119,29 +138,41 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       hostName: hostPortal,
       tipoTarjeta: hostPortal,
 
-      tipoVenta: type > 0 ? type.toString() : '',
+      // XML que funciona:
+      // <TipoVenta/>
+      tipoVenta: '',
 
       numeroTarjeta: tarjetaPortal,
       loteAbierto: '1',
 
-      nombreTH: nombreTarjetaHabientePortal,
+      // XML que funciona:
+      // <NombreTH/>
+      nombreTH: '',
 
       aprobacion: numeroAutorizacionPortal,
 
+      // XML que funciona:
+      // <IdTerminal>SDKGASNE</IdTerminal>
       idTerminal: terminalPortal,
 
-      // Para Portal:
-      // numeroReferencia = referenceNumber
-      // codigoReferencia = ticketNumber
-      numeroReferencia: referenciaPortal,
+      // XML que funciona:
+      // <NumeroReferencia>000001</NumeroReferencia>
+      // <CodigoReferencia>000001</CodigoReferencia>
+      // Para tu JSON debe ser ticketNumber: 000003.
+      numeroReferencia: reciboPortal,
       codigoReferencia: reciboPortal,
 
-      idComercio: comercioPortal,
+      // XML que funciona:
+      // <IdComercio>SDKGASNE</IdComercio>
+      // NO usar merchantId aquí.
+      idComercio: terminalPortal,
 
       diferidoyQuickPayment: '',
 
-      // También guardamos el JSON completo aquí por respaldo.
-      reservado: jsonOriginalPortal,
+      // XML que funciona:
+      // <Reservado/>
+      // NO guardar el JSON aquí.
+      reservado: '',
 
       archivoFirma: '',
       tvr: '',
@@ -152,7 +183,12 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       multiplesVentas: false,
       result: true,
     );
+  }
 
-    return result;
+  DateTime? _dateFromPortalTimestamp(String value) {
+    final millis = int.tryParse(value.trim());
+    if (millis == null || millis <= 0) return null;
+
+    return DateTime.fromMillisecondsSinceEpoch(millis);
   }
 }
