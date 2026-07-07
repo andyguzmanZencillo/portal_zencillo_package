@@ -69,7 +69,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // XML que funciona:
       // <NumeroLote>633</NumeroLote>
       // En el original funcional venía igual al documento/venta local.
-      numeroLote: idDocument,
+      numeroLote: lot,
 
       horaTransaccion: fechaPortal.getHourWindDev(),
 
