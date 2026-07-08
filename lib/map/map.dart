@@ -17,26 +17,22 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
             ? rawResponse.trim()
             : data.trim();
 
-    final numeroAutorizacionPortal = transactionId.trim().isNotEmpty
-        ? transactionId.trim()
-        : messageId.trim().isNotEmpty
-            ? messageId.trim()
-            : approvalCode.trim();
+    final numeroAutorizacionPortal = transactionId.trim();
 
     final terminalPortal = terminalId.trim();
 
-    final reciboPortal =
-        ticketNumber.trim().isNotEmpty ? ticketNumber.trim() : receipt.trim();
+    final reciboPortal = ticketNumber.trim();
 
-    final tarjetaPortal = maskedAccountIdentifier.trim().isNotEmpty
-        ? maskedAccountIdentifier.trim()
-        : lastFourDigitsCard.trim();
+    final numeroTransaccionPortal = ticketNumber.trim();
 
-    final hostPortal =
-        scheme.trim().isNotEmpty ? scheme.trim() : franchise.trim();
+    final numeroAprobacionPortal = transactionId.trim();
 
-    final comercioPortal =
-        merchantId.trim().isNotEmpty ? merchantId.trim() : merchantPosId.trim();
+    final tarjetaPortal = maskedAccountIdentifier;
+
+    final hostPortal = scheme;
+
+    // id comercio
+    final comercioPortal = merchantId;
 
     final fechaPortal =
         _dateFromPortalTimestamp(localTimestamp) ?? DateTime.now();
@@ -64,7 +60,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // XML que funciona:
       // <SecuencialTransaccion>949601</SecuencialTransaccion>
       // Usamos transactionId/messageId, no traceAuditNo.
-      secuencialTransaccion: numeroAutorizacionPortal.toIntSafe(),
+      secuencialTransaccion: numeroTransaccionPortal.toIntSafe(),
 
       // XML que funciona:
       // <NumeroLote>633</NumeroLote>
@@ -149,7 +145,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // <NombreTH/>
       nombreTH: '',
 
-      aprobacion: numeroAutorizacionPortal,
+      aprobacion: numeroAprobacionPortal,
 
       // XML que funciona:
       // <IdTerminal>SDKGASNE</IdTerminal>

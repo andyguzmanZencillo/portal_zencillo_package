@@ -4,7 +4,7 @@ class PortalPayResponse {
   final int code;
   final String message;
 
-  // --------------------------------------------------------------------------
+/* // --------------------------------------------------------------------------
   // Campos usados actualmente por tu sistema
   // --------------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ class PortalPayResponse {
   // --------------------------------------------------------------------------
   // Campos originales de Data recibidos desde Portal DOM
   // --------------------------------------------------------------------------
-
+*/
   final String messageName;
   final String messageType;
   final String subMessageType;
@@ -55,6 +55,7 @@ class PortalPayResponse {
   final String traceAuditNo;
   final String transactionId;
   final String ticketNumber;
+  final String terminalId;
   final String merchantId;
   final String currencyCode;
   final String currencySymbol;
@@ -81,7 +82,7 @@ class PortalPayResponse {
   PortalPayResponse({
     required this.code,
     required this.message,
-    required this.autorizationCode,
+    /*required this.autorizationCode,
     required this.value,
     required this.tax,
     required this.receipt,
@@ -99,7 +100,7 @@ class PortalPayResponse {
     required this.taxSend,
     required this.tipSend,
     required this.iacSend,
-    required this.isla,
+    required this.isla,*/
     required this.messageName,
     required this.messageType,
     required this.subMessageType,
@@ -118,6 +119,7 @@ class PortalPayResponse {
     required this.traceAuditNo,
     required this.transactionId,
     required this.ticketNumber,
+    required this.terminalId,
     required this.merchantId,
     required this.currencyCode,
     required this.currencySymbol,
@@ -143,7 +145,7 @@ class PortalPayResponse {
       // Campos usados actualmente por tu sistema
       // ----------------------------------------------------------------------
 
-      autorizationCode: data.getPro('autorizationCode', ''),
+      /*autorizationCode: data.getPro('autorizationCode', ''),
       value: data.getPro('value', ''),
       tax: data.getPro('tax', ''),
       receipt: data.getPro('receipt', ''),
@@ -155,18 +157,18 @@ class PortalPayResponse {
       accountType: data.getPro('accountType', ''),
       quotas: data.getPro('quotas', ''),
       lastFourDigitsCard: data.getPro('lastFourDigitsCard', ''),
-      merchantPosId: data.getPro('merchantPosId', ''),
+      merchantPosId: data.getPro('merchantPosId', ''),*/
 
       // ----------------------------------------------------------------------
       // Datos enviados desde POS / Flutter
       // ----------------------------------------------------------------------
 
-      idInvoice: data.getPro('idInvoice', 0),
+      /*idInvoice: data.getPro('idInvoice', 0),
       amountSend: data.getPro('amountSend', 0.0),
       taxSend: data.getPro('taxSend', 0.0),
       tipSend: data.getPro('tipSend', 0.0),
       iacSend: data.getPro('iacSend', 0.0),
-      isla: data.getPro('isla', 0),
+      isla: data.getPro('isla', 0),*/
 
       // ----------------------------------------------------------------------
       // Campos originales de Data recibidos desde Portal DOM
@@ -190,6 +192,7 @@ class PortalPayResponse {
       traceAuditNo: data.getPro('traceAuditNo', ''),
       transactionId: data.getPro('transactionId', ''),
       ticketNumber: data.getPro('ticketNumber', ''),
+      terminalId: data.getPro('terminalId', ''),
       merchantId: data.getPro('merchantId', ''),
       currencyCode: data.getPro('currencyCode', ''),
       currencySymbol: data.getPro('currencySymbol', ''),
@@ -215,8 +218,47 @@ class PortalPayResponse {
   }
 
   //tostring
-  @override
+  /*@override
   String toString() {
     return 'PortalPayResponse{code: $code, message: $message, autorizationCode: $autorizationCode, value: $value, tax: $tax, receipt: $receipt, rrn: $rrn, terminalId: $terminalId, timeDate: $timeDate, responseCode: $responseCode, franchise: $franchise, accountType: $accountType, quotas: $quotas, lastFourDigitsCard: $lastFourDigitsCard, merchantPosId: $merchantPosId, idInvoice: $idInvoice, amountSend: $amountSend, taxSend: $taxSend, tipSend: $tipSend, iacSend: $iacSend, isla: $isla, messageName: $messageName, messageType: $messageType, subMessageType: $subMessageType, globalStatus: $globalStatus, messageId: $messageId, grandTotal: $grandTotal, tipsAmount: $tipsAmount, scheme: $scheme, localTimestamp: $localTimestamp, entryMode: $entryMode, referenceNumber: $referenceNumber, authResponseCode: $authResponseCode, cardToken: $cardToken, maskedAccountIdentifier: $maskedAccountIdentifier, expirationDate: $expirationDate, traceAuditNo: $traceAuditNo, transactionId: $transactionId, ticketNumber: $ticketNumber, merchantId: $merchantId, currencyCode: $currencyCode, currencySymbol: $currencySymbol, approvalCode: $approvalCode, total: $total, type: $type, lot: $lot, isDCC: $isDCC, description: $description}';
+  }*/
+
+  //tostring
+  @override
+  String toString() {
+    return 'PortalPayResponse{'
+        'code: $code, '
+        'message: $message, '
+        'messageName: $messageName, '
+        'messageType: $messageType, '
+        'subMessageType: $subMessageType, '
+        'globalStatus: $globalStatus, '
+        'messageId: $messageId, '
+        'grandTotal: $grandTotal, '
+        'tipsAmount: $tipsAmount, '
+        'scheme: $scheme, '
+        'localTimestamp: $localTimestamp, '
+        'entryMode: $entryMode, '
+        'referenceNumber: $referenceNumber, '
+        'authResponseCode: $authResponseCode, '
+        'cardToken: $cardToken, '
+        'maskedAccountIdentifier: $maskedAccountIdentifier, '
+        'expirationDate: $expirationDate, '
+        'traceAuditNo: $traceAuditNo, '
+        'transactionId: $transactionId, '
+        'ticketNumber: $ticketNumber, '
+        'merchantId: $merchantId, '
+        'currencyCode: $currencyCode, '
+        'currencySymbol: $currencySymbol, '
+        'approvalCode: $approvalCode, '
+        'total: $total, '
+        'type: $type, '
+        'lot: $lot, '
+        'isDCC: $isDCC, '
+        'description: $description, '
+        'data: $data, '
+        'raw: $raw, '
+        'rawResponse: $rawResponse'
+        '}';
   }
 }
