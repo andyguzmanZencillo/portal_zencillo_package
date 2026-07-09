@@ -16,23 +16,11 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
         : rawResponse.trim().isNotEmpty
             ? rawResponse.trim()
             : data.trim();
-
-    final numeroAutorizacionPortal = transactionId.trim();
-
     final terminalPortal = terminalId.trim();
-
-    final reciboPortal = ticketNumber.trim();
-
-    final numeroTransaccionPortal = ticketNumber.trim();
-
-    final numeroAprobacionPortal = transactionId.trim();
 
     final tarjetaPortal = maskedAccountIdentifier;
 
     final hostPortal = scheme;
-
-    // id comercio
-    final comercioPortal = merchantId;
 
     final fechaPortal =
         _dateFromPortalTimestamp(localTimestamp) ?? DateTime.now();
@@ -43,6 +31,23 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
             ? grandTotal
             : total;
 
+    //secuencialTransaccion en gascommander es el campo de aprabacion
+    //NumeroAutorizacion en gascommander es el campo de Transacciones
+
+    final codigoRespuestaActor = authResponseCode.trim();
+
+    final secuencialTransaccion = ticketNumber.trim();
+
+    final numeroLote = lot;
+    final numeroAutorizacion = transactionId.trim();
+
+    final codigoReferencia = referenceNumber.trim();
+    final numeroReferencia = referenceNumber.trim();
+
+    final mid = merchantId.trim();
+
+    final aprobacion = transactionId.trim();
+
     return FormaPagoDetalleModel(
       idVenta: idDocument,
       idTurno: idTurno,
@@ -51,7 +56,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
 
       // XML que funciona:
       // <CodigoRespuestaActor/>
-      codigoRespuestaActor: '',
+      codigoRespuestaActor: codigoRespuestaActor,
 
       // XML que funciona:
       // <MensajeRespuesta>{JSON}</MensajeRespuesta>
@@ -60,12 +65,12 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // XML que funciona:
       // <SecuencialTransaccion>949601</SecuencialTransaccion>
       // Usamos transactionId/messageId, no traceAuditNo.
-      secuencialTransaccion: numeroTransaccionPortal.toIntSafe(),
+      secuencialTransaccion: secuencialTransaccion.toIntSafe(),
 
       // XML que funciona:
       // <NumeroLote>633</NumeroLote>
       // En el original funcional venía igual al documento/venta local.
-      numeroLote: lot,
+      numeroLote: numeroLote,
 
       horaTransaccion: fechaPortal.getHourWindDev(),
 
@@ -74,7 +79,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
 
       // XML que funciona:
       // <NumeroAutorizacion>949601</NumeroAutorizacion>
-      numeroAutorizacion: numeroAutorizacionPortal.limit(10),
+      numeroAutorizacion: numeroAutorizacion.limit(10),
 
       // XML que funciona:
       // <TID/>
@@ -82,7 +87,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
 
       // XML que funciona:
       // <MID>000000167391001</MID>
-      mid: comercioPortal,
+      mid: mid,
 
       valorInteres: 0,
       mensajeImpresion: '',
@@ -145,7 +150,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // <NombreTH/>
       nombreTH: '',
 
-      aprobacion: numeroAprobacionPortal,
+      aprobacion: aprobacion,
 
       // XML que funciona:
       // <IdTerminal>SDKGASNE</IdTerminal>
@@ -155,8 +160,8 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       // <NumeroReferencia>000001</NumeroReferencia>
       // <CodigoReferencia>000001</CodigoReferencia>
       // Para tu JSON debe ser ticketNumber: 000003.
-      numeroReferencia: referenceNumber,
-      codigoReferencia: reciboPortal,
+      numeroReferencia: numeroReferencia,
+      codigoReferencia: codigoReferencia,
 
       // XML que funciona:
       // <IdComercio>SDKGASNE</IdComercio>
