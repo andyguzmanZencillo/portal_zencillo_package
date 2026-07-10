@@ -34,17 +34,15 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
     //secuencialTransaccion en gascommander es el campo de aprabacion
     //NumeroAutorizacion en gascommander es el campo de Transacciones
 
-    final codigoRespuestaActor = authResponseCode.trim();
-
     final secuencialTransaccion = transactionId.trim();
 
     final numeroLote = lot;
 
     //es el numero de recibo
-    final numeroAutorizacion = ticketNumber;
+    final numeroAutorizacion = transactionId;
 
-    final codigoReferencia = referenceNumber.trim();
-    final numeroReferencia = referenceNumber.trim();
+    final numeroReferencia = ticketNumber;
+    final codigoReferencia = ticketNumber;
 
     final mid = merchantId.trim();
 
@@ -58,7 +56,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
 
       // XML que funciona:
       // <CodigoRespuestaActor/>
-      codigoRespuestaActor: codigoRespuestaActor,
+      codigoRespuestaActor: '',
 
       // XML que funciona:
       // <MensajeRespuesta>{JSON}</MensajeRespuesta>
@@ -146,7 +144,7 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
       tipoVenta: '',
 
       numeroTarjeta: tarjetaPortal,
-      loteAbierto: '1',
+      loteAbierto: numeroLote.toString(),
 
       // XML que funciona:
       // <NombreTH/>
