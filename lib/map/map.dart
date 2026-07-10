@@ -36,10 +36,10 @@ extension PortalFormaPagoDetalleMapper on PortalPayResponse {
 
     final codigoRespuestaActor = authResponseCode.trim();
 
-    final secuencialTransaccion = ticketNumber.trim();
+    final secuencialTransaccion = transactionId.trim();
 
     final numeroLote = lot;
-    final numeroAutorizacion = transactionId.trim();
+    final numeroAutorizacion = ticketNumber;
 
     final codigoReferencia = referenceNumber.trim();
     final numeroReferencia = referenceNumber.trim();
