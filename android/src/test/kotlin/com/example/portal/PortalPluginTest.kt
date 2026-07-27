@@ -1,4 +1,4 @@
-package com.example.portal
+package com.zencillo.portal
 
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel

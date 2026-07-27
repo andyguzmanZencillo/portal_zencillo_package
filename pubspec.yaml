@@ -27,7 +27,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.portal
+        package: com.zencillo.portal
         pluginClass: PortalPlugin
       ios:
         pluginClass: PortalPlugin

@@ -1,4 +1,4 @@
-package com.example.portal.models
+package com.zencillo.portal.models
 
 import org.json.JSONObject
 

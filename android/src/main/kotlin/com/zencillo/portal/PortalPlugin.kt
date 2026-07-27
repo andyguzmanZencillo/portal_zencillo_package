@@ -1,4 +1,4 @@
-package com.example.portal
+package com.zencillo.portal
 
 import android.app.Activity
 import android.content.Intent
@@ -8,8 +8,8 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import com.example.portal.models.ModelPay
-import com.example.portal.models.ResponsePay
+import com.zencillo.portal.models.ModelPay
+import com.zencillo.portal.models.ResponsePay
 import org.json.JSONObject
 import org.json.JSONArray
 
@@ -63,7 +63,7 @@ class PortalPlugin : FlutterPlugin,
                 modelPay.rTax = call.argument<Double>("tax")!!
                 modelPay.rTIP = call.argument<Double>("tip")!!
                 modelPay.rIAC = call.argument<Double>("iac")!!
-                sendPayment(false)
+                sendPayment(true)
             }
 
             "close" -> {

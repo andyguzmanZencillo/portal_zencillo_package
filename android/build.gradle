@@ -1,4 +1,4 @@
-group = "com.example.portal"
+group = "com.zencillo.portal"
 version = "1.0-SNAPSHOT"
 
 buildscript {
@@ -27,7 +27,7 @@ apply plugin: "kotlin-android"
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace = "com.example.portal"
+        namespace = "com.zencillo.portal"
     }
 
     compileSdk = 34

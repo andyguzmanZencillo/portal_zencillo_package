@@ -1,4 +1,4 @@
-package com.example.portal.models
+package com.zencillo.portal.models
 
 data class ModelPay(
     var rBaseTAX: Double = 0.0,
