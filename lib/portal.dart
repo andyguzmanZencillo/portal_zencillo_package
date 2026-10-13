@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'sdk/portal_sdk_channel.dart';
+import 'models/sdk_response.dart';
+export 'models/sdk_response.dart';
 import 'package:oxidized/oxidized.dart';
 import 'package:portal/map/map.dart';
 import 'package:zencillo_helpers/zencillo_helpers.dart';
@@ -105,6 +109,44 @@ class Portal {
   static Future<Result<ClosePortalResponse, String>> close(String token) {
     return PortalPlatform.instance.close(token);
   }
+
+  /// SDK progress; subscribe before initializing or paying.
+  static Stream<SdkEvent> get sdkEvents => PortalSdkChannel.events;
+
+  /// Validates credentials and initializes Android payment hardware.
+  static Future<Result<SdkInitResponse, SdkFailure>> initsk({
+    required String token,
+    required int merchantId,
+    String environment = 'DEV',
+    Duration timeout = const Duration(seconds: 45),
+  }) =>
+      PortalSdkChannel.initsk(
+        token: token,
+        merchantId: merchantId,
+        environment: environment,
+        timeout: timeout,
+      );
+
+  /// Reads a card and waits for the DOP financial result. Does not print.
+  /// Persist [clientReferenceId] before calling; never retry an uncertain result.
+  static Future<Result<SdkPayResponse, SdkFailure>> paysdk({
+    required double amount,
+    required String clientReferenceId,
+    double tip = 0,
+    Duration timeout = const Duration(minutes: 2),
+  }) =>
+      PortalSdkChannel.paysdk(
+        amount: amount,
+        clientReferenceId: clientReferenceId,
+        tip: tip,
+        timeout: timeout,
+      );
+
+  /// Settles all lots. Inspect allClosed: a partial closure is not full success.
+  static Future<Result<SdkCloseResponse, SdkFailure>> closesdk({
+    Duration timeout = const Duration(minutes: 2),
+  }) =>
+      PortalSdkChannel.closesdk(timeout: timeout);
 
   /// (Opcional) Versión de la plataforma
   Future<String?> getPlatformVersion() {

@@ -15,8 +15,14 @@ buildscript {
     }
 }
 
-allprojects {
+def portalSdkRepository = file('libs/maven')
+
+rootProject.allprojects {
     repositories {
+        exclusiveContent {
+            forRepository { maven { url = portalSdkRepository } }
+            filter { includeGroup('do.portaldom.local') }
+        }
         google()
         mavenCentral()
     }
@@ -47,7 +53,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
         targetSdk = 34
     }
 
@@ -65,6 +71,16 @@ android {
 }
 
 dependencies {
+    implementation 'do.portaldom.local:portal-sdk:1.0.124'
+    implementation 'do.portaldom.local:paylib:2.0.17'
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.sunmi:printerlibrary:1.0.18'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
 }

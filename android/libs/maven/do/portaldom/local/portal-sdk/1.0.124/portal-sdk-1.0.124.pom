@@ -1,0 +1,1 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><groupId>do.portaldom.local</groupId><artifactId>portal-sdk</artifactId><version>1.0.124</version><packaging>aar</packaging><description>Local packaging of provider AAR, unchanged binary.</description></project>

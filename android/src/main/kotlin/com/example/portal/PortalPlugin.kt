@@ -22,6 +22,7 @@ class PortalPlugin : FlutterPlugin,
     private var activity: Activity? = null
     private var pendingResult: MethodChannel.Result? = null
     private var modelPay = ModelPay()
+    private var sdkBridge: PortalSdkBridge? = null
 
     companion object {
         private const val REQ_LOGIN = 10001
@@ -36,9 +37,12 @@ class PortalPlugin : FlutterPlugin,
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(binding.binaryMessenger, "portal")
         channel.setMethodCallHandler(this)
+        sdkBridge = PortalSdkBridge(binding.binaryMessenger) { pendingResult != null }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        sdkBridge?.dispose()
+        sdkBridge = null
         channel.setMethodCallHandler(null)
     }
 
@@ -47,6 +51,10 @@ class PortalPlugin : FlutterPlugin,
     // --------------------------------------------------------------------------
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (sdkBridge?.isBusy() == true) {
+            result.error("SDK_BUSY", "Hay una operacion SDK pendiente de confirmar.", null)
+            return
+        }
         when (call.method) {
 
             "login" -> {
@@ -82,6 +90,7 @@ class PortalPlugin : FlutterPlugin,
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        sdkBridge?.attach(binding.activity)
         binding.addActivityResultListener { requestCode, resultCode, data ->
             handleResult(requestCode, resultCode, data)
             true
@@ -89,11 +98,16 @@ class PortalPlugin : FlutterPlugin,
     }
 
     override fun onDetachedFromActivity() {
+        sdkBridge?.detach()
         activity = null
     }
 
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {}
-    override fun onDetachedFromActivityForConfigChanges() {}
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        sdkBridge?.attach(binding.activity)
+    }
+    override fun onDetachedFromActivityForConfigChanges() {
+        sdkBridge?.detach()
+    }
 
     // --------------------------------------------------------------------------
     // 4. Portal DOM – Intents
