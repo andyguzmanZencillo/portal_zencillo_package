@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 /// Failure reported by the SDK bridge. An indeterminate operation must be
 /// reconciled with Portal before another financial request is sent.
 class SdkFailure {
@@ -9,8 +11,34 @@ class SdkFailure {
   final bool indeterminate;
   final String? clientReferenceId;
 
+  /// Maps native [PlatformException.details] (`indeterminate`, `clientReferenceId`).
+  factory SdkFailure.fromPlatformException(
+    PlatformException error, {
+    String? fallbackReference,
+  }) {
+    final details = error.details;
+    String? reference;
+    var indeterminate = false;
+    if (details is Map) {
+      final map = Map<String, dynamic>.from(details);
+      indeterminate = map['indeterminate'] == true;
+      final fromNative = map['clientReferenceId'];
+      if (fromNative is String && fromNative.isNotEmpty) {
+        reference = fromNative;
+      }
+    }
+    return SdkFailure(
+      error.code,
+      error.message ?? 'Error del SDK.',
+      indeterminate: indeterminate,
+      clientReferenceId: reference ?? fallbackReference,
+    );
+  }
+
   @override
-  String toString() => '$code: $message';
+  String toString() => indeterminate
+      ? '$code: $message (conciliar antes de reintentar)'
+      : '$code: $message';
 }
 
 /// Authentication and hardware initialization completed; contains no token.

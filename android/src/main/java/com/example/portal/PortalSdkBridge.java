@@ -35,7 +35,6 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
     private MethodChannel.Result pending;
     private String operation;
     private String reference;
-    private String initializedEnvironment;
     private int initializedMerchant;
     private double amount;
     private double tip;
@@ -107,32 +106,37 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
         if ("initsk".equals(call.method)) {
             String token = call.argument("token");
             Number merchant = call.argument("merchantId");
-            String environment = call.argument("environment");
-            if (token == null || token.trim().isEmpty() || merchant == null || merchant.intValue() <= 0
-                    || !("DEV".equals(environment) || "PROD".equals(environment))) {
-                result.error("INVALID_ARGUMENT", "Credenciales o ambiente invalidos.", null); return;
+            if (token != null) token = token.trim();
+            if (token == null || token.isEmpty() || merchant == null || merchant.intValue() <= 0) {
+                result.error("INVALID_ARGUMENT", "Credenciales invalidas.", null); return;
             }
-            // SDKPortal is a process singleton. Do not silently reuse another merchant/environment.
+            // SDKPortal is a process singleton. Do not silently reuse another merchant.
             if (sdk != null) {
-                if (ready && initializedMerchant == merchant.intValue()
-                        && environment.equals(initializedEnvironment)) {
+                if (ready && initializedMerchant == merchant.intValue()) {
                     result.success(Collections.singletonMap("version", sdk.getTheSDKVersion()));
                 } else {
                     result.error("SDK_RESTART_REQUIRED", "Reinicie para cambiar credenciales o revalidar.", null);
                 }
                 return;
             }
-            initializedMerchant = merchant.intValue(); initializedEnvironment = environment;
+            initializedMerchant = merchant.intValue();
             begin(call.method, result, timeout.longValue());
             Context context = activity;
+            final String initToken = token;
+            final int merchantId = merchant.intValue();
             worker.execute(() -> {
                 try {
                     SDKPortal.setDebugMode(false);
-                    sdk = SDKPortal.validate(context, token, merchant.intValue(), EnvironmentsApp.valueOf(environment));
+                    sdk = SDKPortal.validate(
+                            context, initToken, merchantId, validateEnvironment());
                     sdk.setAuthenticationResultListener(this);
                     sdk.setTransactionResultListener(this);
                     sdk.setTransactionAsyncResultListener(this);
-                } catch (Exception | LinkageError e) { report("SDK_INIT_FAILED", false); }
+                } catch (Exception | LinkageError e) {
+                    sdk = null;
+                    ready = false;
+                    report("SDK_INIT_FAILED", false);
+                }
             });
         } else if ("paysdk".equals(call.method)) {
             Number value = call.argument("amount"); Number tips = call.argument("tip");
@@ -215,6 +219,17 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
     }
     private static String text(String value) { return value == null ? "" : value; }
 
+    /** Valor exigido por `SDKPortal.validate`; no se expone a Flutter. */
+    private static EnvironmentsApp validateEnvironment() {
+        return EnvironmentsApp.PROD;
+    }
+
+    @SuppressWarnings("deprecation")
+    private void executeSaleFromReader(String readerId, double value, double tips, String clientReference)
+            throws Exception {
+        sdk.executeSaleFromId(readerId, value, Double.toString(tips), CurrencyHelper.DOP, clientReference);
+    }
+
     @Override public void onValidateStart() { main.post(() -> emit("validating")); }
     @Override public void onValidateEnd() {
         main.post(() -> {
@@ -266,8 +281,11 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
             submitted = true; submittedReferences.add(reference); emit("processing_payment");
             final String clientReference = reference; final double value = amount; final double tips = tip;
             worker.execute(() -> {
-                try { sdk.executeSaleFromId(readerId, value, Double.toString(tips), CurrencyHelper.DOP, clientReference); }
-                catch (Exception | LinkageError e) { report("TRANSACTION_UNKNOWN", true); }
+                try {
+                    executeSaleFromReader(readerId, value, tips, clientReference);
+                } catch (Exception | LinkageError e) {
+                    report("TRANSACTION_UNKNOWN", true);
+                }
             });
         });
     }

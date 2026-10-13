@@ -1,5 +1,30 @@
 import 'package:portal/models/portal_pay_response.dart';
+import 'package:portal/models/sdk_response.dart';
 import 'package:zencillo_helpers/zencillo_helpers.dart';
+
+extension SdkPayPortalMapper on SdkPayResponse {
+  PortalPayResponse toPortalPayResponse() {
+    return PortalPayResponse.fromJson({
+      'code': responseCode == '00' ? 0 : 1,
+      'message': responseCode,
+      'data': {
+        'transactionId': transactionId,
+        'ticketNumber': ticketNumber,
+        'terminalId': terminalId,
+        'merchantId': merchantId,
+        'referenceNumber': referenceNumber,
+        'authResponseCode': responseCode,
+        'approvalCode': authorizationCode,
+        'maskedAccountIdentifier': maskedCard,
+        'total': amount,
+        'grandTotal': amount,
+        'scheme': hostName,
+        'lot': lot ?? 0,
+        'currencyCode': currency,
+      },
+    });
+  }
+}
 
 extension PortalFormaPagoDetalleMapper on PortalPayResponse {
   FormaPagoDetalleModel toFormaPagoDetalle({

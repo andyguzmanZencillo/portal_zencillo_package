@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portal/portal.dart';
@@ -46,84 +48,131 @@ void main() {
   });
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
-  test('initialization uses a separate SDK channel and DEV by default',
-      () async {
-    final result = await Portal.initsk(token: 'test-only', merchantId: 1);
-    expect(result.unwrap().version, '1.0.124');
+  test('login isSdk uses SDK channel', () async {
+    final result = await Portal.login(
+      isSdk: true,
+      apiKey: 'test-only',
+      merchantId: '1',
+    );
+    expect(result.isOk(), true);
+    expect(result.unwrap().token, 'test-only');
     expect(calls.single.method, 'initsk');
-    expect(calls.single.arguments['environment'], 'DEV');
+    expect(calls.single.arguments.containsKey('environment'), false);
+    expect(calls.single.arguments['token'], 'test-only');
   });
-  test('invalid initialization does not reach native SDK', () async {
-    expect((await Portal.initsk(token: '', merchantId: 0)).isErr(), true);
+  test('invalid login isSdk does not reach native', () async {
+    expect(
+      (await Portal.login(isSdk: true, apiKey: '', merchantId: '0')).isErr(),
+      true,
+    );
     expect(calls, isEmpty);
   });
-  test('payment preserves nonnumeric transaction IDs and caller reference',
-      () async {
-    final result =
-        await Portal.paysdk(amount: 10.5, clientReferenceId: 'sale-1');
+  test('pay isSdk preserves IDs and caller reference', () async {
+    final result = await Portal.pay(
+      isSdk: true,
+      token: 'sale-1',
+      amount: 10.5,
+      tax: 0,
+      tip: 0,
+      iac: 0,
+    );
+    expect(result.isOk(), true);
     expect(result.unwrap().transactionId, 'trx-alpha-123');
-    expect(result.unwrap().authorizationCode, 'A12345');
+    expect(result.unwrap().approvalCode, 'A12345');
     expect(calls.single.arguments['clientReferenceId'], 'sale-1');
   });
-  test('invalid amounts and empty references do not reach native SDK',
-      () async {
+  test('invalid pay isSdk amounts do not reach native', () async {
     for (final value in [0.0, -1.0, double.nan, double.infinity]) {
       expect(
-          (await Portal.paysdk(amount: value, clientReferenceId: 'sale-1'))
-              .isErr(),
-          true);
+        (await Portal.pay(
+          isSdk: true,
+          token: 'sale-1',
+          amount: value,
+          tax: 0,
+          tip: 0,
+          iac: 0,
+        )).isErr(),
+        true,
+      );
     }
     expect(
-        (await Portal.paysdk(amount: 1, clientReferenceId: ' ')).isErr(), true);
+      (await Portal.pay(
+        isSdk: true,
+        token: ' ',
+        amount: 1,
+        tax: 0,
+        tip: 0,
+        iac: 0,
+      )).isErr(),
+      true,
+    );
     expect(calls, isEmpty);
   });
-  test('financial timeout preserves indeterminate status and reference',
-      () async {
+  test('financial timeout preserves indeterminate message', () async {
     messenger.setMockMethodCallHandler(channel, (_) async {
       throw PlatformException(
           code: 'TRANSACTION_UNKNOWN',
           message: 'Reconcile',
-          details: {'indeterminate': true});
+          details: {
+            'indeterminate': true,
+            'clientReferenceId': 'sale-native',
+          });
     });
-    final error = (await Portal.paysdk(amount: 1, clientReferenceId: 'sale-1'))
-        .unwrapErr();
-    expect(error.indeterminate, true);
-    expect(error.clientReferenceId, 'sale-1');
+    final error =
+        (await Portal.pay(
+          isSdk: true,
+          token: 'sale-1',
+          amount: 1,
+          tax: 0,
+          tip: 0,
+          iac: 0,
+        )).unwrapErr();
+    expect(error.contains('conciliar'), true);
   });
   test('malformed financial result requires reconciliation', () async {
     messenger.setMockMethodCallHandler(channel, (_) async => null);
-    expect(
-        (await Portal.paysdk(amount: 1, clientReferenceId: 'sale-1'))
-            .unwrapErr()
-            .indeterminate,
-        true);
+    final error = (await Portal.pay(
+      isSdk: true,
+      token: 'sale-1',
+      amount: 1,
+      tax: 0,
+      tip: 0,
+      iac: 0,
+    )).unwrapErr();
+    expect(error.contains('conciliar'), true);
   });
-  test('partial settlement exposes both outcomes and is not allClosed',
-      () async {
-    final response = (await Portal.closesdk()).unwrap();
-    expect(response.lots.length, 2);
-    expect(response.allClosed, false);
+  test('close isSdk partial settlement encoded in jsonData', () async {
+    final result = await Portal.close('', isSdk: true);
+    expect(result.isOk(), true);
+    final data = jsonDecode(result.unwrap().jsonData) as Map<String, dynamic>;
+    expect((data['lots'] as List).length, 2);
+    expect(data['allClosed'], false);
   });
-  test('empty settlement is distinguishable from partial settlement', () async {
+  test('close isSdk empty settlement is distinguishable', () async {
     messenger.setMockMethodCallHandler(channel, (_) async => {'lots': []});
-    final response = (await Portal.closesdk()).unwrap();
-    expect(response.isEmpty, true);
+    final result = await Portal.close('', isSdk: true);
+    expect(result.isOk(), true);
+    final data = jsonDecode(result.unwrap().jsonData) as Map<String, dynamic>;
+    expect((data['lots'] as List).isEmpty, true);
   });
-  test('missing platform returns an explicit unsupported failure', () async {
+  test('missing platform returns unsupported failure', () async {
     messenger.setMockMethodCallHandler(
         channel, (_) async => throw MissingPluginException());
-    expect(
-        (await Portal.initsk(token: 'test-only', merchantId: 1))
-            .unwrapErr()
-            .code,
-        'UNSUPPORTED_PLATFORM');
+    final error = (await Portal.login(
+      isSdk: true,
+      apiKey: 'test-only',
+      merchantId: '1',
+    )).unwrapErr();
+    expect(error.contains('UNSUPPORTED_PLATFORM'), true);
   });
-  test('out of range timeout does not reach native SDK', () async {
-    expect((await Portal.closesdk(timeout: Duration.zero)).isErr(), true);
+  test('out of range close isSdk timeout does not reach native', () async {
+    expect(
+      (await Portal.close('', isSdk: true, timeout: Duration.zero)).isErr(),
+      true,
+    );
     expect(calls, isEmpty);
   });
-  test('legacy login still uses its original channel independently of SDK',
-      () async {
+  test('login app-to-app uses legacy channel independently of SDK', () async {
     const legacy = MethodChannel('portal');
     MethodCall? legacyCall;
     messenger.setMockMethodCallHandler(legacy, (call) async {
@@ -131,7 +180,8 @@ void main() {
       return {'code': 0, 'message': 'OK', 'token': 'test-only'};
     });
     try {
-      final result = await Portal.login(apiKey: 'test-only', merchantId: '1');
+      final result =
+          await Portal.login(apiKey: 'test-only', merchantId: '1');
       expect(result.unwrap().token, 'test-only');
       expect(legacyCall?.method, 'login');
       expect(calls, isEmpty);

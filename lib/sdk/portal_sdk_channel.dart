@@ -13,25 +13,21 @@ class PortalSdkChannel {
   static Future<Result<SdkInitResponse, SdkFailure>> initsk({
     required String token,
     required int merchantId,
-    String environment = 'DEV',
     Duration timeout = const Duration(seconds: 45),
   }) {
-    if (token.trim().isEmpty ||
-        merchantId <= 0 ||
-        !const ['DEV', 'PROD'].contains(environment) ||
-        !_validTimeout(timeout)) {
+    final trimmedToken = token.trim();
+    if (trimmedToken.isEmpty || merchantId <= 0 || !_validTimeout(timeout)) {
       return Future.value(const Err(SdkFailure(
-          'INVALID_ARGUMENT', 'Revise token, comercio, ambiente y timeout.')));
+          'INVALID_ARGUMENT', 'Revise token, comercio y timeout.')));
     }
     return _invoke(
         'initsk',
         {
-          'token': token,
+          'token': trimmedToken,
           'merchantId': merchantId,
-          'environment': environment,
           'timeoutMs': timeout.inMilliseconds,
         },
-        (map) => SdkInitResponse(version: map['version'] as String));
+        (map) => SdkInitResponse(version: map['version'] as String? ?? ''));
   }
 
   static Future<Result<SdkPayResponse, SdkFailure>> paysdk({
@@ -49,16 +45,17 @@ class PortalSdkChannel {
       return Future.value(const Err(SdkFailure(
           'INVALID_ARGUMENT', 'Revise monto, propina, referencia y timeout.')));
     }
+    final reference = clientReferenceId.trim();
     return _invoke(
         'paysdk',
         {
           'amount': amount,
           'tip': tip,
-          'clientReferenceId': clientReferenceId,
+          'clientReferenceId': reference,
           'timeoutMs': timeout.inMilliseconds,
         },
         SdkPayResponse.fromMap,
-        reference: clientReferenceId,
+        reference: reference,
         financial: true);
   }
 
@@ -88,10 +85,8 @@ class PortalSdkChannel {
       }
       return Ok(parse(Map<String, dynamic>.from(value)));
     } on PlatformException catch (error) {
-      final details = error.details;
-      return Err(SdkFailure(error.code, error.message ?? 'Error del SDK.',
-          indeterminate: details is Map && details['indeterminate'] == true,
-          clientReferenceId: reference));
+      return Err(
+          SdkFailure.fromPlatformException(error, fallbackReference: reference));
     } on MissingPluginException {
       return const Err(SdkFailure('UNSUPPORTED_PLATFORM',
           'El SDK requiere Android y hardware compatible.'));

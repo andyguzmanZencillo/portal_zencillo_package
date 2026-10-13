@@ -1,54 +1,61 @@
 # Portal Flutter: app-to-app y SDK Android
 
-Los metodos existentes `login`, `pay`, `payFull`, `payComplete`, `close` conservan app-to-app.
-`close` ejecuta cierre de lotes, no logout. Nuevos metodos SDK son opt-in en rama `codex/portal-sdk`.
+Mismos métodos de siempre: `login`, `pay`, `payFull`, `payComplete`, `close`.
+Pasa `isSdk: true` para usar el SDK embebido en Android; los tipos de retorno no cambian.
 
 ```dart
 import 'package:portal/portal.dart';
 
+const useSdk = true;
+
 final subscription = Portal.sdkEvents.listen((event) {
-  // Actualizar la pantalla existente: reading_card, processing_payment, ready...
+  // reading_card, processing_payment, ready...
 });
-final initialized = await Portal.initsk(
-  token: tokenRecibidoEnRuntime, merchantId: comercioId, environment: 'DEV',
+
+final session = await Portal.login(
+  apiKey: tokenPortal,
+  merchantId: '$comercioId',
+  isSdk: useSdk,
 );
-if (initialized.isOk()) {
-  // Persistir esta referencia y el intento ANTES de llamar.
-  final payment = await Portal.paysdk(
-    amount: 1500, clientReferenceId: referenciaPersistidaDeLaVenta, tip: 0,
+if (session.isOk()) {
+  final pay = await Portal.pay(
+    token: session.unwrap().token,
+    amount: 1500,
+    tax: 0,
+    tip: 0,
+    iac: 0,
+    isSdk: useSdk,
+    clientReferenceId: referenciaDeLaVenta, // SDK; si falta, usa [token]
   );
-  payment.when(ok: (response) {
-    // Guardar transactionId/autorizacion; generar voucher con campos permitidos.
-  }, err: (failure) {
-    // Si indeterminate: consultar Portal y reconciliar; NO volver a cobrar.
-  });
+  pay.when(
+    ok: (response) { /* PortalPayResponse */ },
+    err: (message) { /* conciliar si el texto lo indica */ },
+  );
 }
-final closed = await Portal.closesdk();
-if (closed.isOk() && !closed.unwrap().allClosed) {
-  // Mostrar lotes fallidos: no afirmar que todo cerro correctamente.
-}
+
+final closed = await Portal.close(session.unwrap().token, isSdk: useSdk);
 await subscription.cancel();
 ```
 
 ## Contrato
 
-- `initsk`: token runtime, merchantId entero, DEV/PROD. Espera validacion y callback de hardware. Default DEV; no expone credenciales en respuesta.
-- `paysdk`: monto DOP y propina en unidades monetarias; referencia obligatoria del host. Lectura via `startReadingCard`, listener asincrono con readerTransactionId y `executeSaleFromId`. Espera respuesta financiera. No imprime ni convierte al mapper XML antiguo; respuesta `SdkPayResponse` mantiene IDs como strings. DCC extranjero fuera de alcance: ejecuta en DOP, no acepta USD automaticamente.
-- `closesdk`: `transactionSettlementAll`; devuelve lotes individuales, `allClosed` e `isEmpty`. Un cierre parcial se devuelve con allClosed=false para no perder sus resultados.
-- Eventos: `Portal.sdkEvents` usa `portal/sdk/events`; metodos usan `portal/sdk`, separados del canal legado `portal`.
-- `SdkFailure` conserva codigo, mensaje seguro, `indeterminate` y referencia. Timeout configurable 1..300 s (45 s init, 120 s pago/cierre).
+- `login`: app-to-app devuelve `token` = `AccessToken` de la app Portal (`apiKey` + `merchantId` de entrada). Con `isSdk`, `initsk` no emite sesión: `login.token` repite el `apiKey` enviado; la sesión queda en el SDK nativo.
+- `pay` / `payFull` / `payComplete`: mismos parámetros; SDK usa `clientReferenceId` o, si no se pasa, el `token` como referencia de venta.
+- `close`: app-to-app requiere token; SDK ignora el token y ejecuta settlement (`jsonData` incluye lotes y `allClosed`).
+- Eventos: `Portal.sdkEvents` en `portal/sdk/events`.
+- `SdkFailure` se expone como `Err(String)` en la API legada; mensajes indeterminados mencionan conciliar.
 
 ## Recuperacion y limites
 
 No reintentos automaticos. Timeout/detach/error tras envio implica resultado incierto y bloquea nuevas operaciones en esta instancia. Referencias repetidas enviadas se bloquean por proceso. Cancelacion/error de lector tambien bloquea para evitar que callbacks tardios correspondan al siguiente pago. El host debe reconciliar ANTES de reiniciar o volver a cobrar; reiniciar no prueba que el pago fallo. No hay reconciliacion persistente ni idempotencia garantizada por este paquete.
 
-SDKPortal es un singleton: cambiar comercio/ambiente o repetir validacion tras fallo exige reiniciar. Repetir init exitoso mismo comercio/ambiente devuelve estado listo; no renueva token. Renovacion/logout deben definirse con Portal. No hay pantalla nueva ni captura de PIN propia; host muestra progreso y proveedor maneja pasos seguros. Impresion y reimpresion pertenecen al consumidor y requieren voucher aprobado por proveedor. Pago e impresion son resultados separados.
+SDKPortal es un singleton: cambiar comercio o repetir validacion tras fallo exige reiniciar. Repetir init exitoso con el mismo comercio devuelve estado listo; no renueva token. Renovacion/logout deben definirse con Portal. No hay pantalla nueva ni captura de PIN propia; host muestra progreso y proveedor maneja pasos seguros. Impresion y reimpresion pertenecen al consumidor y requieren voucher aprobado por proveedor. Pago e impresion son resultados separados.
 
 ## Artefactos y Android
 
 AAR descargados del sitio del proveedor en `android/libs/maven`, con URL y SHA256 en `docs/SDK_ARTIFACTS.md`. Android API minimo 24 (tambien para consumidores de esta version); target/compile 34 en plugin. Host puede usar 35. Kotlin 1.9.24/Java 8. No copiar configuracion de firma de ejemplos.
 
-El sitio anuncia Sunmi P2/P3 Mix; solo Sunmi se contempla aqui. PayLib 2.0.17 reemplaza la biblioteca equivalente del consumidor: no agregar junto al PayLib 2.0.07 del capturador (clases duplicadas). Android fusiona el manifiesto del AAR, que declara permisos amplios (Bluetooth, ubicacion, almacenamiento, QUERY_ALL_PACKAGES, etc.); revisar manifiesto final antes de distribuir.
+El sitio anuncia Sunmi P2/P3 Mix; solo Sunmi se contempla aqui. Este plugin empaqueta `portal-sdk` y PayLib 2.0.17 desde `android/libs/maven`. Si la app host incluye otra PayLib Sunmi (p. ej. 2.0.07), debe quedar **una sola** version 2.0.17 en el APK. Android fusiona el manifiesto del AAR, que declara permisos amplios (Bluetooth, ubicacion, almacenamiento, QUERY_ALL_PACKAGES, etc.); revisar manifiesto final antes de distribuir.
 
 Auditoria del binario: referencia clases externas PAX/Newpos, ademas de Sunmi/Retrofit/Gson/coroutines. La pagina solo entrega dos AAR. No se suprimen errores R8 ni se inventan dependencias PAX: confirmar distribucion completa/compatibilidad con proveedor antes de release. Dependencias comunes publicadas se declaran en Gradle.
 
@@ -60,13 +67,3 @@ Ejecutar `flutter analyze`, `flutter test`; verificar politica nativa con `tool/
 
 SPEC: `specs/2026-10-13-portal-sdk/SPEC.md`.
 Documentacion proveedor: https://cybersource.portaldom.do/pages/sdk/index.html
-
-### Resultado de validacion local (2026-10-13)
-
-- flutter analyze: sin observaciones.
-- Flutter tests: 12 aprobadas (contrato SDK, canal legado, eventos, validaciones y errores).
-- Politica Java: 15 comprobaciones aprobadas.
-- Host Android aislado: assembleDebug y bundleDebugAar aprobados, con ambos AAR mediante Maven local.
-- Gradle: JBR 21, AGP 8.1.4, Kotlin 1.9.24, Gradle 8.14.3; host minSdk 24, compileSdk 35, Java/Kotlin target 1.8.
-- Workaround de esta maquina: JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/dev/portal_zencillo_package evita fallo de loopback del JDK; no se cambio configuracion global.
-- Pendiente: hardware/PIN, credenciales DEV, comportamiento de rechazo, conciliacion y release/R8; APK debug no certifica produccion.

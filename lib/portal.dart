@@ -1,33 +1,72 @@
-import 'dart:async';
-import 'sdk/portal_sdk_channel.dart';
-import 'models/sdk_response.dart';
-export 'models/sdk_response.dart';
+import 'dart:convert';
+
 import 'package:oxidized/oxidized.dart';
 import 'package:portal/map/map.dart';
+import 'package:portal/models/close_portal_response.dart';
+import 'package:portal/models/login_portal_response.dart';
+import 'package:portal/models/portal_pay_response.dart';
+import 'package:portal/models/sdk_response.dart';
+import 'package:portal/portal_platform_interface.dart';
+import 'package:portal/sdk/portal_sdk_channel.dart';
 import 'package:zencillo_helpers/zencillo_helpers.dart';
 
-import 'models/close_portal_response.dart';
-import 'models/login_portal_response.dart';
-import 'models/portal_pay_response.dart';
-import 'portal_platform_interface.dart';
+export 'models/sdk_response.dart';
 
 class Portal {
-  /// Inicia sesión en el portal
+  /// Inicia sesión en el portal (app-to-app) o inicializa el SDK Android.
   static Future<Result<LoginPortalResponse, String>> login({
     required String apiKey,
     required String merchantId,
-  }) {
+    bool isSdk = false,
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    if (isSdk) {
+      final merchant = int.tryParse(merchantId.trim()) ?? 0;
+      final result = await PortalSdkChannel.initsk(
+        token: apiKey,
+        merchantId: merchant,
+        timeout: timeout,
+      );
+      if (result.isErr()) {
+        return Err(result.unwrapErr().toString());
+      }
+      final init = result.unwrap();
+      return Ok(LoginPortalResponse.fromJson({
+        'code': 0,
+        'message': init.version.isEmpty ? 'SDK listo' : init.version,
+        'token': apiKey.trim(),
+      }));
+    }
     return PortalPlatform.instance.login(apiKey, merchantId);
   }
 
-  /// Procesa un pago
+  /// Procesa un pago (app-to-app o SDK embebido).
   static Future<Result<PortalPayResponse, String>> pay({
     required String token,
     required double amount,
     required double tax,
     required double tip,
     required double iac,
-  }) {
+    bool isSdk = false,
+    String? clientReferenceId,
+    Duration timeout = const Duration(minutes: 2),
+  }) async {
+    if (isSdk) {
+      final reference = (clientReferenceId ?? token).trim();
+      if (reference.isEmpty) {
+        return const Err('Referencia de venta requerida.');
+      }
+      final result = await PortalSdkChannel.paysdk(
+        amount: amount,
+        clientReferenceId: reference,
+        tip: tip,
+        timeout: timeout,
+      );
+      if (result.isErr()) {
+        return Err(result.unwrapErr().toString());
+      }
+      return Ok(result.unwrap().toPortalPayResponse());
+    }
     return PortalPlatform.instance.pay(
       token: token,
       amount: amount,
@@ -48,13 +87,19 @@ class Portal {
     required int idFormaPago,
     required double tip,
     required double iac,
+    bool isSdk = false,
+    String? clientReferenceId,
+    Duration timeout = const Duration(minutes: 2),
   }) async {
-    final result = await PortalPlatform.instance.pay(
+    final result = await pay(
       token: token,
       amount: total,
       tax: taxTotal,
       tip: tip,
       iac: iac,
+      isSdk: isSdk,
+      clientReferenceId: clientReferenceId,
+      timeout: timeout,
     );
 
     if (result.isErr()) {
@@ -80,13 +125,19 @@ class Portal {
     required double subTotal,
     required double tip,
     required double iac,
+    bool isSdk = false,
+    String? clientReferenceId,
+    Duration timeout = const Duration(minutes: 2),
   }) async {
-    final result = await PortalPlatform.instance.pay(
+    final result = await pay(
       token: token,
       amount: total,
       tax: taxTotal,
       tip: tip,
       iac: iac,
+      isSdk: isSdk,
+      clientReferenceId: clientReferenceId,
+      timeout: timeout,
     );
 
     if (result.isErr()) {
@@ -105,50 +156,37 @@ class Portal {
     return Ok(formaPagoDetalle);
   }
 
-  /// Cierra la sesión del portal
-  static Future<Result<ClosePortalResponse, String>> close(String token) {
+  /// Cierre de lotes (app-to-app o settlement SDK).
+  static Future<Result<ClosePortalResponse, String>> close(
+    String token, {
+    bool isSdk = false,
+    Duration timeout = const Duration(minutes: 2),
+  }) async {
+    if (isSdk) {
+      final result = await PortalSdkChannel.closesdk(timeout: timeout);
+      if (result.isErr()) {
+        return Err(result.unwrapErr().toString());
+      }
+      final sdk = result.unwrap();
+      final lots = sdk.lots
+          .map((lot) => {
+                'lot': lot.lot,
+                'closed': lot.closed,
+                'hostName': lot.hostName,
+                'terminalId': lot.terminalId,
+              })
+          .toList();
+      return Ok(ClosePortalResponse(
+        code: 0,
+        message: sdk.allClosed ? 'OK' : 'Cierre parcial',
+        jsonData: jsonEncode({'lots': lots, 'allClosed': sdk.allClosed}),
+      ));
+    }
     return PortalPlatform.instance.close(token);
   }
 
-  /// SDK progress; subscribe before initializing or paying.
   static Stream<SdkEvent> get sdkEvents => PortalSdkChannel.events;
 
-  /// Validates credentials and initializes Android payment hardware.
-  static Future<Result<SdkInitResponse, SdkFailure>> initsk({
-    required String token,
-    required int merchantId,
-    String environment = 'DEV',
-    Duration timeout = const Duration(seconds: 45),
-  }) =>
-      PortalSdkChannel.initsk(
-        token: token,
-        merchantId: merchantId,
-        environment: environment,
-        timeout: timeout,
-      );
-
-  /// Reads a card and waits for the DOP financial result. Does not print.
-  /// Persist [clientReferenceId] before calling; never retry an uncertain result.
-  static Future<Result<SdkPayResponse, SdkFailure>> paysdk({
-    required double amount,
-    required String clientReferenceId,
-    double tip = 0,
-    Duration timeout = const Duration(minutes: 2),
-  }) =>
-      PortalSdkChannel.paysdk(
-        amount: amount,
-        clientReferenceId: clientReferenceId,
-        tip: tip,
-        timeout: timeout,
-      );
-
-  /// Settles all lots. Inspect allClosed: a partial closure is not full success.
-  static Future<Result<SdkCloseResponse, SdkFailure>> closesdk({
-    Duration timeout = const Duration(minutes: 2),
-  }) =>
-      PortalSdkChannel.closesdk(timeout: timeout);
-
-  /// (Opcional) Versión de la plataforma
   Future<String?> getPlatformVersion() {
     return PortalPlatform.instance.getPlatformVersion();
   }

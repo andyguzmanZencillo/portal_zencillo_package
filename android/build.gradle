@@ -20,7 +20,7 @@ def portalSdkRepository = file('libs/maven')
 rootProject.allprojects {
     repositories {
         exclusiveContent {
-            forRepository { maven { url = portalSdkRepository } }
+            forRepository { maven { url = portalSdkRepository.toURI() } }
             filter { includeGroup('do.portaldom.local') }
         }
         google()

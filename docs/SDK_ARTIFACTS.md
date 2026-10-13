@@ -13,3 +13,5 @@ Downloaded 2026-10-13 from provider. SHA256 documents integrity, not certificati
 
 Binary content unchanged. Gradle coordinates do.portaldom.local are generated locally, not official provider Maven coordinates.
 Stored under android/libs/maven/do/portaldom/local/{portal-sdk,paylib}/{version}/ with minimal packaging POMs. This avoids direct local AAR dependencies breaking plugin AAR bundling.
+
+Gradle en el plugin Flutter: `portal-sdk` y `paylib` como `implementation` (plugin autocontenido). Si el host ya embebe PayLib, excluir duplicados en Gradle del consumidor.
