@@ -221,7 +221,7 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
 
     /** Valor exigido por `SDKPortal.validate`; no se expone a Flutter. */
     private static EnvironmentsApp validateEnvironment() {
-        return EnvironmentsApp.PROD;
+        return EnvironmentsApp.DEV;
     }
 
     @SuppressWarnings("deprecation")
@@ -257,7 +257,7 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
             } else {
                 String detail = text(reason);
                 String message = detail.isEmpty()
-                        ? "No se pudo autenticar el SDK (ambiente PROD)."
+                        ? "No se pudo autenticar el SDK (ambiente DEV)."
                         : "No se pudo autenticar el SDK: " + detail;
                 fail("AUTH_FAILED", message, false);
             }
