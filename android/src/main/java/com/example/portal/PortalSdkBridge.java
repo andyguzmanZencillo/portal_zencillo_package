@@ -255,7 +255,11 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
             if (submitted || "closesdk".equals(operation)) {
                 blocked = true; fail("TRANSACTION_UNKNOWN", "Autenticacion perdida durante la operacion.", true);
             } else {
-                fail("AUTH_FAILED", "No se pudo autenticar el SDK.", false);
+                String detail = text(reason);
+                String message = detail.isEmpty()
+                        ? "No se pudo autenticar el SDK (ambiente PROD)."
+                        : "No se pudo autenticar el SDK: " + detail;
+                fail("AUTH_FAILED", message, false);
             }
         });
     }
