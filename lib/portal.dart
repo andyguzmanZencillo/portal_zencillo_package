@@ -8,9 +8,11 @@ import 'package:portal/models/portal_pay_response.dart';
 import 'package:portal/models/sdk_response.dart';
 import 'package:portal/portal_platform_interface.dart';
 import 'package:portal/sdk/portal_sdk_channel.dart';
+import 'package:portal/sdk/portal_sdk_diagnostics.dart';
 import 'package:zencillo_helpers/zencillo_helpers.dart';
 
 export 'models/sdk_response.dart';
+export 'sdk/portal_sdk_diagnostics.dart';
 
 class Portal {
   /// Inicia sesión en el portal (app-to-app) o inicializa el SDK Android.
@@ -186,6 +188,10 @@ class Portal {
   }
 
   static Stream<SdkEvent> get sdkEvents => PortalSdkChannel.events;
+
+  /// Trazas nativas + Dart para diagnóstico en campo (sin credenciales completas).
+  static Stream<SdkDiagnosticEntry> get sdkDiagnostics =>
+      PortalSdkDiagnostics.stream;
 
   Future<String?> getPlatformVersion() {
     return PortalPlatform.instance.getPlatformVersion();

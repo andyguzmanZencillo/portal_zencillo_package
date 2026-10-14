@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:oxidized/oxidized.dart';
 
 import '../models/sdk_response.dart';
+import 'portal_sdk_diagnostics.dart';
 
 /// Independent channel for SDK operations; app-to-app remains on `portal`.
 class PortalSdkChannel {
@@ -77,20 +78,77 @@ class PortalSdkChannel {
   static Future<Result<T, SdkFailure>> _invoke<T>(String method,
       Map<String, dynamic> arguments, T Function(Map<String, dynamic>) parse,
       {String? reference, bool financial = false}) async {
+    final stopwatch = Stopwatch()..start();
+    PortalSdkDiagnostics.logDart(
+      phase: 'method_invoke_start',
+      message: 'Invocando puente nativo',
+      context: PortalSdkDiagnostics.sanitizeInvokeArguments(method, arguments),
+    );
     try {
       final value = await _methods.invokeMethod<Object?>(method, arguments);
+      stopwatch.stop();
       if (value is! Map) {
+        PortalSdkDiagnostics.logDart(
+          phase: 'method_invoke_invalid_response',
+          message: 'Respuesta no es Map',
+          context: {
+            'method': method,
+            'elapsedMs': stopwatch.elapsedMilliseconds,
+            'responseType': value?.runtimeType.toString() ?? 'null',
+          },
+        );
         return Err(SdkFailure('INVALID_RESPONSE', 'Respuesta SDK invalida.',
             indeterminate: financial, clientReferenceId: reference));
       }
+      PortalSdkDiagnostics.logDart(
+        phase: 'method_invoke_success',
+        message: 'Puente respondió OK',
+        context: {
+          'method': method,
+          'elapsedMs': stopwatch.elapsedMilliseconds,
+          'responseKeys': Map<String, dynamic>.from(value as Map).keys.toList(),
+        },
+      );
       return Ok(parse(Map<String, dynamic>.from(value)));
     } on PlatformException catch (error) {
-      return Err(
-          SdkFailure.fromPlatformException(error, fallbackReference: reference));
+      stopwatch.stop();
+      final failure =
+          SdkFailure.fromPlatformException(error, fallbackReference: reference);
+      PortalSdkDiagnostics.logDart(
+        phase: 'method_invoke_platform_error',
+        message: failure.toString(),
+        context: {
+          'method': method,
+          'elapsedMs': stopwatch.elapsedMilliseconds,
+          'code': failure.code,
+          'indeterminate': failure.indeterminate,
+          if (failure.clientReferenceId != null)
+            'clientReferenceId': failure.clientReferenceId,
+        },
+      );
+      return Err(failure);
     } on MissingPluginException {
+      stopwatch.stop();
+      PortalSdkDiagnostics.logDart(
+        phase: 'method_invoke_missing_plugin',
+        message: 'Canal portal/sdk no disponible',
+        context: {
+          'method': method,
+          'elapsedMs': stopwatch.elapsedMilliseconds,
+        },
+      );
       return const Err(SdkFailure('UNSUPPORTED_PLATFORM',
           'El SDK requiere Android y hardware compatible.'));
-    } catch (_) {
+    } catch (error) {
+      stopwatch.stop();
+      PortalSdkDiagnostics.logDart(
+        phase: 'method_invoke_error',
+        message: error.toString(),
+        context: {
+          'method': method,
+          'elapsedMs': stopwatch.elapsedMilliseconds,
+        },
+      );
       return Err(SdkFailure('INVALID_RESPONSE', 'Respuesta SDK invalida.',
           indeterminate: financial, clientReferenceId: reference));
     }

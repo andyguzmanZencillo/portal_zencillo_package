@@ -107,8 +107,52 @@ class SdkCloseResponse {
 class SdkEvent {
   SdkEvent.fromMap(Map<String, dynamic> map)
       : state = map['state'] as String,
-        clientReferenceId = map['clientReferenceId'] as String?;
+        clientReferenceId = map['clientReferenceId'] as String?,
+        timestampMs = (map['timestampMs'] as num?)?.toInt(),
+        operation = map['operation'] as String?,
+        code = map['code'] as String?,
+        message = map['message'] as String?,
+        indeterminate = map['indeterminate'] == true,
+        detail = _detailFromMap(map);
 
   final String state;
   final String? clientReferenceId;
+  final int? timestampMs;
+  final String? operation;
+  final String? code;
+  final String? message;
+  final bool indeterminate;
+  final Map<String, Object?> detail;
+
+  static Map<String, Object?> _detailFromMap(Map<String, dynamic> map) {
+    const known = {
+      'state',
+      'clientReferenceId',
+      'timestampMs',
+      'operation',
+      'code',
+      'message',
+      'indeterminate',
+    };
+    final detail = <String, Object?>{};
+    map.forEach((key, value) {
+      if (!known.contains(key)) {
+        detail[key] = value;
+      }
+    });
+    return Map.unmodifiable(detail);
+  }
+
+  @override
+  String toString() {
+    final buffer = StringBuffer('state=$state');
+    if (operation != null) buffer.write(', op=$operation');
+    if (code != null) buffer.write(', code=$code');
+    if (message != null) buffer.write(', msg=$message');
+    if (clientReferenceId != null) {
+      buffer.write(', ref=$clientReferenceId');
+    }
+    if (detail.isNotEmpty) buffer.write(', detail=$detail');
+    return buffer.toString();
+  }
 }

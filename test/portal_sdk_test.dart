@@ -189,6 +189,21 @@ void main() {
       messenger.setMockMethodCallHandler(legacy, null);
     }
   });
+  test('sdkDiagnostics forwards sanitized invoke metadata', () async {
+    final lines = <SdkDiagnosticEntry>[];
+    final sub = Portal.sdkDiagnostics.listen(lines.add);
+    await Portal.login(isSdk: true, apiKey: 'secret-token-1234', merchantId: '99');
+    await Future<void>.delayed(Duration.zero);
+    await sub.cancel();
+    expect(
+      lines.any((e) => e.phase == 'method_invoke_start'),
+      true,
+    );
+    final start = lines.firstWhere((e) => e.phase == 'method_invoke_start');
+    expect(start.context['tokenLength'], 17);
+    expect(start.context.containsKey('token'), false);
+  });
+
   test('SDK progress reaches Flutter on its dedicated event stream', () async {
     const eventControl = MethodChannel('portal/sdk/events');
     messenger.setMockMethodCallHandler(eventControl, (_) async => null);

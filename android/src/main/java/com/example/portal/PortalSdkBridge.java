@@ -127,12 +127,24 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
             worker.execute(() -> {
                 try {
                     SDKPortal.setDebugMode(false);
+                    Map<String, Object> beforeValidate = new HashMap<>();
+                    beforeValidate.put("merchantId", merchantId);
+                    beforeValidate.put("environment", validateEnvironment().name());
+                    beforeValidate.put("tokenLength", initToken.length());
+                    main.post(() -> emit("validate_request", beforeValidate));
                     sdk = SDKPortal.validate(
                             context, initToken, merchantId, validateEnvironment());
+                    Map<String, Object> afterValidate = new HashMap<>();
+                    afterValidate.put("sdkAssigned", sdk != null);
+                    main.post(() -> emit("validate_returned", afterValidate));
                     sdk.setAuthenticationResultListener(this);
                     sdk.setTransactionResultListener(this);
                     sdk.setTransactionAsyncResultListener(this);
                 } catch (Exception | LinkageError e) {
+                    Map<String, Object> err = new HashMap<>();
+                    err.put("errorType", e.getClass().getSimpleName());
+                    err.put("errorMessage", text(e.getMessage()));
+                    main.post(() -> emit("validate_exception", err));
                     sdk = null;
                     ready = false;
                     report("SDK_INIT_FAILED", false);
@@ -186,15 +198,32 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
             fail(uncertain ? "TRANSACTION_UNKNOWN" : "SDK_TIMEOUT", "Tiempo agotado; no reintente automaticamente.", uncertain);
         };
         main.postDelayed(deadline, timeout);
-        emit(name + "_started");
+        Map<String, Object> started = new HashMap<>();
+        started.put("timeoutMs", timeout);
+        emit(name + "_started", started);
     }
 
     private void emit(String state) {
-        if (!disposed && sink != null) {
-            Map<String, Object> event = new HashMap<>(); event.put("state", state);
-            if (reference != null) event.put("clientReferenceId", reference);
-            sink.success(event);
+        emit(state, Collections.emptyMap());
+    }
+
+    private void emit(String state, Map<String, Object> extra) {
+        if (disposed || sink == null) {
+            return;
         }
+        Map<String, Object> event = new HashMap<>();
+        event.put("state", state);
+        event.put("timestampMs", System.currentTimeMillis());
+        if (operation != null) {
+            event.put("operation", operation);
+        }
+        if (reference != null) {
+            event.put("clientReferenceId", reference);
+        }
+        if (extra != null) {
+            event.putAll(extra);
+        }
+        sink.success(event);
     }
     private void clear() {
         if (deadline != null) main.removeCallbacks(deadline);
@@ -208,7 +237,12 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
         if (pending == null || disposed) return;
         Map<String, Object> details = new HashMap<>(); details.put("indeterminate", uncertain);
         if (reference != null) details.put("clientReferenceId", reference);
-        MethodChannel.Result result = pending; emit(uncertain ? "indeterminate" : "failed");
+        Map<String, Object> diagnostic = new HashMap<>();
+        diagnostic.put("code", code);
+        diagnostic.put("message", message);
+        diagnostic.put("indeterminate", uncertain);
+        MethodChannel.Result result = pending;
+        emit(uncertain ? "indeterminate" : "failed", diagnostic);
         clear(); result.error(code, message, details);
     }
     private void report(String code, boolean uncertain) {
@@ -233,11 +267,19 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
     @Override public void onValidateStart() { main.post(() -> emit("validating")); }
     @Override public void onValidateEnd() {
         main.post(() -> {
+            emit("validate_finished");
             if (!"initsk".equals(operation) || validationStartedHardware) return;
             validationStartedHardware = true;
             worker.execute(() -> {
+                main.post(() -> emit("sdk_init_call"));
                 try { if (!Boolean.TRUE.equals(sdk.sdkInit())) report("SDK_INIT_FAILED", false); }
-                catch (Exception | LinkageError e) { report("SDK_INIT_FAILED", false); }
+                catch (Exception | LinkageError e) {
+                    Map<String, Object> err = new HashMap<>();
+                    err.put("errorType", e.getClass().getSimpleName());
+                    err.put("errorMessage", text(e.getMessage()));
+                    main.post(() -> emit("sdk_init_exception", err));
+                    report("SDK_INIT_FAILED", false);
+                }
             });
         });
     }
@@ -252,10 +294,13 @@ public final class PortalSdkBridge implements MethodChannel.MethodCallHandler,
     @Override public void onAuthFailed(String reason) {
         main.post(() -> {
             ready = false;
+            String detail = text(reason);
+            Map<String, Object> auth = new HashMap<>();
+            auth.put("reason", detail.isEmpty() ? "(sin detalle)" : detail);
+            emit("auth_failed", auth);
             if (submitted || "closesdk".equals(operation)) {
                 blocked = true; fail("TRANSACTION_UNKNOWN", "Autenticacion perdida durante la operacion.", true);
             } else {
-                String detail = text(reason);
                 String message = detail.isEmpty()
                         ? "No se pudo autenticar el SDK (ambiente DEV)."
                         : "No se pudo autenticar el SDK: " + detail;
